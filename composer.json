@@ -1,0 +1,28 @@
+{
+    "name": "payflexi/payflexi-magento2-module",
+    "description": "PayFlexi Magento2 Module using \\Magento\\Payment\\Model\\Method\\AbstractMethod",
+    "version": "1.0.0",
+    "type": "magento2-module",
+    "license": [
+        "MIT"
+    ],
+    "minimum-stability": "dev",
+    "authors":
+    [
+        {
+            "name": "Stanley Ojadovwa"
+        }
+    ],
+    "support":
+    {
+        "email": "developers@payflexi.co"
+    },
+    "autoload": {
+        "files": [
+            "registration.php"
+        ],
+        "psr-4": {
+            "Payflexi\\Checkout\\": ""
+        }
+    }
+}

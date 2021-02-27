@@ -1,0 +1,16 @@
+.payflexi-configure .button {
+    float: right;
+  }
+  
+  .payflexi-checkout-section .payflexi-configure .button:before {
+    content: 'Configure';
+  }
+  
+  .payflexi-checkout-section.active .payflexi-configure .button:before {
+    content: 'Close';
+  }
+  
+  .payflexi-checkout-section .heading {
+    background: url('../images/payflexi-logo.png') no-repeat 0 50% / 18rem auto; padding-left: 20rem;
+  }
+  

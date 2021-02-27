@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Store:etc/config.xsd">
+    <default>
+        <payment>
+            <payflexi_checkout>
+                <debug>1</debug>
+                <active>0</active>
+                <test_mode>1</test_mode>
+                <integration_type>inline</integration_type>
+                <model>Payflexi\Checkout\Model\Payment\Payflexi</model>
+                <title>PayFlexi (Pay in Installments)</title>
+                <live_secret_key backend_model="Magento\Config\Model\Config\Backend\Encrypted" />
+                <test_secret_key backend_model="Magento\Config\Model\Config\Backend\Encrypted" />
+                <can_use_checkout>1</can_use_checkout>
+                <can_use_internal>0</can_use_internal>
+                <sort_order>400</sort_order>
+                <order_status>pending</order_status>
+                <allowspecific>0</allowspecific>
+                <min_order_total>50</min_order_total>
+                <max_order_total>500000</max_order_total>
+            </payflexi_checkout>
+        </payment>
+    </default>
+</config>
