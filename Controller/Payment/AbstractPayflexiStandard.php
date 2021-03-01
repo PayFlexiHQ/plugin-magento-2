@@ -92,7 +92,6 @@ abstract class AbstractPayflexiStandard extends \Magento\Framework\App\Action\Ac
 
         $this->payflexi = $this->initPayflexiPay();
 
-
         parent::__construct($context);
     }
 

@@ -24,9 +24,16 @@ class CsrfValidatorSkip {
         $request,
         $action
     ) {
-        if ("{$request->getModuleName()}/{$request->getActionName()}" == 'payflexi/webhook') {
+         /* Magento 2.1.x, 2.2.x */
+        if ($request->getModuleName() == 'payflexi_checkout') {
             return; // Skip CSRF check
         }
+
+        /* Magento 2.3.x */
+        if (strpos($request->getOriginalPathInfo(), 'payflexi') !== false) {
+            return; // Skip CSRF check
+        }
+
         $proceed($request, $action); // Proceed Magento 2 core functionalities
     }
     

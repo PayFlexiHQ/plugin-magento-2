@@ -46,9 +46,10 @@ class Webhook extends \Magento\Config\Block\System\Config\Form\Field
      */
     protected function _getElementHtml(AbstractElement $element)
     {
-        $webhookUrl = $this->store->getBaseUrl() . 'payflexi/checkout/payment/webhook';
+        $webhookUrl = $this->store->getBaseUrl() . 'payflexi/payment/webhook';
+
         $value = "You may login to <a target=\"_blank\" href=\"https://merchant.payflexi.co/developers\">Payflexi Merchant Settings</a> to update your Webhook URL to:<br><br>"
-                . "<strong style='color:red;'>$webhookUrl</strong>";
+            . "<strong style='color:red;'>$webhookUrl</strong>";
 
         $element->setValue($webhookUrl);
 

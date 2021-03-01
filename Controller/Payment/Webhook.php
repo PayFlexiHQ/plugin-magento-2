@@ -11,10 +11,87 @@
 
 namespace Payflexi\Checkout\Controller\Payment;
 
-class Webhook extends AbstractPayflexiStandard
+use Magento\Framework\App\Action\Action;
+use Magento\Framework\App\CsrfAwareActionInterface;
+use Magento\Framework\App\Request\InvalidRequestException;
+use Magento\Framework\App\RequestInterface;
+use Magento\Framework\DataObject;
+
+class Webhook extends Action
 {
+    protected $resultPageFactory;
+
+    /**
+     *
+     * @var \Magento\Sales\Api\OrderRepositoryInterface
+     */
+    protected $orderRepository;
+
+    /**
+     *
+     * @var \Magento\Sales\Api\Data\OrderInterface
+     */
+    protected $orderInterface;
+    protected $checkoutSession;
+    protected $method;
+    protected $messageManager;
+
+    /**
+     *
+     * @var \Payflexi\Checkout\Model\Ui\ConfigProvider
+     */
+    protected $configProvider;
+
+    /**
+     * @var \Magento\Framework\Event\Manager
+     */
+    protected $eventManager;
+
+    /**
+     *
+     * @var \Psr\Log\LoggerInterface
+     */
+    protected $logger;
+    /**
+     *
+     * @var \Magento\Framework\App\Request\Http 
+     */
+    protected $request;
+    /**
+     * Constructor
+     *
+     * @param \Magento\Framework\App\Action\Context  $context
+     * @param \Magento\Framework\View\Result\PageFactory $resultPageFactory
+     */
+
+    public function __construct(
+        \Magento\Framework\App\Action\Context $context,
+        \Magento\Framework\View\Result\PageFactory $resultPageFactory,
+        \Magento\Sales\Api\OrderRepositoryInterface $orderRepository,
+        \Magento\Sales\Api\Data\OrderInterface $orderInterface,
+        \Magento\Checkout\Model\Session $checkoutSession,
+        \Magento\Framework\Message\ManagerInterface $messageManager,
+        \Payflexi\Checkout\Model\Ui\ConfigProvider $configProvider,
+        \Magento\Framework\Event\Manager $eventManager,
+        \Magento\Framework\App\Request\Http $request,
+        \Psr\Log\LoggerInterface $logger
+    ) {
+        $this->resultPageFactory = $resultPageFactory;
+        $this->orderRepository = $orderRepository;
+        $this->orderInterface = $orderInterface;
+        $this->checkoutSession = $checkoutSession;
+        $this->messageManager = $messageManager;
+        $this->configProvider = $configProvider;
+        $this->eventManager = $eventManager;
+        $this->request = $request;
+        $this->logger = $logger;
+
+        parent::__construct($context);
+    }
 
     public function execute() {
+
+        $this->logger->info("PayFlexi Webhook processing started.");
 
         $finalMessage = "failed";
         
@@ -22,14 +99,15 @@ class Webhook extends AbstractPayflexiStandard
 
         try {
 
-            $input = file_get_contents('php://input');
             $secretKey = $this->configProvider->getSecretKey();
+
             $this->logger->debug('Secret Key', ['key' => $secretKey]);
+
             if(!$_SERVER['HTTP_X_PAYFLEXI_SIGNATURE'] || ($_SERVER['HTTP_X_PAYFLEXI_SIGNATURE'] !== hash_hmac('sha512', $input, $secretKey))){
                 return;
             }
 
-            $event = json_decode($input);
+            $event = $this->getPostData(); 
             
             http_response_code(200);
             /* It is a important to log all events received. Add code *
@@ -128,6 +206,17 @@ class Webhook extends AbstractPayflexiStandard
         
         $resultFactory->setContents($finalMessage);
         return $resultFactory;
+    }
+
+
+     /**
+     * @return Webhook post data as an array
+     */
+    protected function getPostData() : array
+    {
+        $request = file_get_contents('php://input');
+
+        return json_decode($request, true);
     }
 
 }
