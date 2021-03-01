@@ -41,6 +41,10 @@ class Callback extends AbstractPayflexiStandard {
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
             curl_setopt($ch, CURLOPT_HEADER, false);
 
+             //Remove for Product
+             curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
+             curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+
             // Make sure CURL_SSLVERSION_TLSv1_2 is defined as 6
             // cURL must be able to use TLSv1.2 to connect to Payflexi servers
             if (!defined('CURL_SSLVERSION_TLSv1_2')) {

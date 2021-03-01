@@ -21,103 +21,104 @@ class Webhook extends AbstractPayflexiStandard
         $resultFactory = $this->resultFactory->create(\Magento\Framework\Controller\ResultFactory::TYPE_RAW);
 
         try {
+
+            $input = file_get_contents('php://input');
+            $secretKey = $this->configProvider->getSecretKey();
+            $this->logger->debug('Secret Key', ['key' => $secretKey]);
+            if(!$_SERVER['HTTP_X_PAYFLEXI_SIGNATURE'] || ($_SERVER['HTTP_X_PAYFLEXI_SIGNATURE'] !== hash_hmac('sha512', $input, $secretKey))){
+                return;
+            }
+
+            $event = json_decode($input);
             
-            die();
+            http_response_code(200);
+            /* It is a important to log all events received. Add code *
+            * here to log the signature and body to db or file       */
+            $this->logger->debug('PAYFLEXI_LOG', (array)$event);
 
-        $input = file_get_contents('php://input');
-        $secretKey = $this->configProvider->getSecretKey();
-        if(!$_SERVER['HTTP_X_PAYFLEXI_SIGNATURE'] || ($_SERVER['HTTP_X_PAYFLEXI_SIGNATURE'] !== hash_hmac('sha512', $input, $secretKey))){
-                // silently forget this ever happened
-            return;
-        }
+            // Do something with $event->obj
+            // Give value to your customer but don't give any output
+            // Remember that this is a call from PayFlexi's servers and
+            // Your customer is not seeing the response here at all
+            switch ($event->event) {
 
-        $event = json_decode($input);
-        
-        http_response_code(200);
-        /* It is a important to log all events received. Add code *
-         * here to log the signature and body to db or file       */
-        $this->logger->info(['PAYFLEXI_LOG' => $event]);
+                case 'transaction.approved':
+                    if ('approved' === $event->data->status) {
+                        $ch = curl_init();
+                        $transaction = new \stdClass();
 
-        // Do something with $event->obj
-        // Give value to your customer but don't give any output
-        // Remember that this is a call from PayFlexi's servers and
-        // Your customer is not seeing the response here at all
-        switch ($event->event) {
-            // charge.success
-            case 'transaction.approved':
-                if ('approved' === $event->data->status) {
-                    $ch = curl_init();
-                    $transaction = new \stdClass();
+                        // set url
+                        curl_setopt($ch, CURLOPT_URL, "https://api.payflexi.test/merchants/transactions/" . rawurlencode($event->data->reference));
 
-                    // set url
-                    curl_setopt($ch, CURLOPT_URL, "https://api.payflexi.test/merchants/transactions/" . rawurlencode($event->data->reference));
+                        curl_setopt($ch, CURLOPT_HTTPHEADER, array(
+                            'Authorization: Bearer '. $secretKey
+                        ));
 
-                    curl_setopt($ch, CURLOPT_HTTPHEADER, array(
-                        'Authorization: Bearer '. $secretKey
-                    ));
+                        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+                        curl_setopt($ch, CURLOPT_HEADER, false);
 
-                    curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-                    curl_setopt($ch, CURLOPT_HEADER, false);
+                        //Remove for Product
+                        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
+                        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
 
-                    // Make sure CURL_SSLVERSION_TLSv1_2 is defined as 6
-                    // cURL must be able to use TLSv1.2 to connect to Payflexi servers
-                    if (!defined('CURL_SSLVERSION_TLSv1_2')) {
-                        define('CURL_SSLVERSION_TLSv1_2', 6);
-                    }
-                    curl_setopt($ch, CURLOPT_SSLVERSION, CURL_SSLVERSION_TLSv1_2);
-                    // exec the cURL
-                    $response = curl_exec($ch);
+                        // Make sure CURL_SSLVERSION_TLSv1_2 is defined as 6
+                        // cURL must be able to use TLSv1.2 to connect to Payflexi servers
+                        if (!defined('CURL_SSLVERSION_TLSv1_2')) {
+                            define('CURL_SSLVERSION_TLSv1_2', 6);
+                        }
+                        curl_setopt($ch, CURLOPT_SSLVERSION, CURL_SSLVERSION_TLSv1_2);
+                        // exec the cURL
+                        $response = curl_exec($ch);
 
-                    // should be 0
-                    if (curl_errno($ch)) {
-                        // curl ended with an error
-                        $transaction->error = "cURL said:" . curl_error($ch);
-                        curl_close($ch);
-                    } else {
-
-                        //close connection
-                        curl_close($ch);
-
-                        // Then, after your curl_exec call:
-                        $body = json_decode($response);
-
-                        if($body->errors == true){
-                            // paystack has an error message for us
-                            $transaction->error = "Payflexi API said: " . $body->message;
+                        // should be 0
+                        if (curl_errno($ch)) {
+                            // curl ended with an error
+                            $transaction->error = "cURL said:" . curl_error($ch);
+                            curl_close($ch);
                         } else {
-                            // get body returned by Paystack API
-                            $transaction = $body->data;
 
-                        }
-                    }
+                            //close connection
+                            curl_close($ch);
 
-                    $reference = $transaction->reference;
+                            // Then, after your curl_exec call:
+                            $body = json_decode($response);
 
-                    $order = $this->orderInterface->loadByIncrementId($reference);
+                            if($body->errors == true){
+                                // paystack has an error message for us
+                                $transaction->error = "Payflexi API said: " . $body->message;
+                            } else {
+                                // get body returned by Paystack API
+                                $transaction = $body->data;
 
-                    //if is popup mode, reference is generated by Paystack and we provided quoteId instead
-                    if((!$order || !$order->getId()) && isset($event->data->meta->quoteId)){
-
-                        $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
-                        $searchCriteriaBuilder = $objectManager->create('Magento\Framework\Api\SearchCriteriaBuilder');
-                        $searchCriteria = $searchCriteriaBuilder->addFilter('quote_id', $event->data->meta->quoteId, 'eq')->create();
-                        $items = $this->orderRepository->getList($searchCriteria);
-                        if($items->getTotalCount() == 1){
-                            $order = $items->getFirstItem();
+                            }
                         }
 
-                    }
+                        $reference = $transaction->reference;
 
-                    if ($order && $order->getId()) {
-                        // dispatch the `payment_verify_after` event to update the order status
-                        $this->eventManager->dispatch('payflexi_payment_verify_after', [
-                            "payflexi_order" => $order,
-                        ]);
+                        $order = $this->orderInterface->loadByIncrementId($reference);
 
-                        $resultFactory->setContents("success");
-                        return $resultFactory;
+                        if((!$order || !$order->getId()) && isset($event->data->meta->quoteId)){
+
+                            $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
+                            $searchCriteriaBuilder = $objectManager->create('Magento\Framework\Api\SearchCriteriaBuilder');
+                            $searchCriteria = $searchCriteriaBuilder->addFilter('quote_id', $event->data->meta->quoteId, 'eq')->create();
+                            $items = $this->orderRepository->getList($searchCriteria);
+                            if($items->getTotalCount() == 1){
+                                $order = $items->getFirstItem();
+                            }
+
+                        }
+
+                        if ($order && $order->getId()) {
+                            // dispatch the `payment_verify_after` event to update the order status
+                            $this->eventManager->dispatch('payflexi_payment_verify_after', [
+                                "payflexi_order" => $order,
+                            ]);
+
+                            $resultFactory->setContents("success");
+                            return $resultFactory;
+                        }
                     }
-                }
                 break;
         }
 

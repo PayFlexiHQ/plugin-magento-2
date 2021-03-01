@@ -58,7 +58,6 @@ class PaymentManagement implements \Payflexi\Checkout\Api\PaymentManagementInter
      */
     public function verifyPayment($reference)
     {
-
         // we are appending quoteid
         $ref = explode('_-~-_', $reference);
         $reference = $ref[0];
@@ -76,6 +75,10 @@ class PaymentManagement implements \Payflexi\Checkout\Api\PaymentManagementInter
             
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
             curl_setopt($ch, CURLOPT_HEADER, false);
+
+            //Remove for Product
+            curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
+            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
 
             // Make sure CURL_SSLVERSION_TLSv1_2 is defined as 6
             // cURL must be able to use TLSv1.2 to connect to Payflexi servers
@@ -100,21 +103,19 @@ class PaymentManagement implements \Payflexi\Checkout\Api\PaymentManagementInter
                 $body = json_decode($response);
 
                 if($body->errors == true){
-                    // paystack has an error message for us
+                    // payflexi has an error message for us
                     $transaction->error = "Payflexi API said: " . $body->message;
                 } else {
-                    // get body returned by Paystack API
+                    // get body returned by Payflexi API
                     $transaction = $body->data;
 
                 }
             }
 
-            // echo "<pre>"; print_r($transaction->status); die("dead");
+            $this->logger->debug("Transaction", (array)$transaction->meta);
 
             $order = $this->getOrder();
-            //return json_encode($transaction_details);
             if ($order && $order->getQuoteId() === $quoteId && $transaction->meta->quoteId === $quoteId) {
-                $this->logger->debug("Transaction_status_observer", $transaction);
                 // dispatch the `payflexi_payment_verify_after` event to update the order status
                 $this->eventManager->dispatch('payflexi_payment_verify_after', [
                     "payflexi_order" => $order,
