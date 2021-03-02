@@ -12,10 +12,6 @@
 namespace Payflexi\Checkout\Controller\Payment;
 
 use Magento\Framework\App\Action\Action;
-use Magento\Framework\App\CsrfAwareActionInterface;
-use Magento\Framework\App\Request\InvalidRequestException;
-use Magento\Framework\App\RequestInterface;
-use Magento\Framework\DataObject;
 
 class Webhook extends Action
 {
@@ -74,7 +70,8 @@ class Webhook extends Action
         \Payflexi\Checkout\Model\Ui\ConfigProvider $configProvider,
         \Magento\Framework\Event\Manager $eventManager,
         \Magento\Framework\App\Request\Http $request,
-        \Psr\Log\LoggerInterface $logger
+        \Psr\Log\LoggerInterface $logger,
+        \Payflexi\Checkout\Model\LogHandler $handler
     ) {
         $this->resultPageFactory = $resultPageFactory;
         $this->orderRepository = $orderRepository;
@@ -85,6 +82,8 @@ class Webhook extends Action
         $this->eventManager = $eventManager;
         $this->request = $request;
         $this->logger = $logger;
+        $this->handler = $handler;
+        $this->logger->setHandlers ( [$this->handler] );
 
         parent::__construct($context);
     }
@@ -99,15 +98,15 @@ class Webhook extends Action
 
         try {
 
-            $secretKey = $this->configProvider->getSecretKey();
+            $input = file_get_contents('php://input');
 
-            $this->logger->debug('Secret Key', ['key' => $secretKey]);
+            $secretKey = $this->configProvider->getSecretKey();
 
             if(!$_SERVER['HTTP_X_PAYFLEXI_SIGNATURE'] || ($_SERVER['HTTP_X_PAYFLEXI_SIGNATURE'] !== hash_hmac('sha512', $input, $secretKey))){
                 return;
             }
 
-            $event = $this->getPostData(); 
+            $event = json_decode($input);
             
             http_response_code(200);
             /* It is a important to log all events received. Add code *
@@ -206,17 +205,6 @@ class Webhook extends Action
         
         $resultFactory->setContents($finalMessage);
         return $resultFactory;
-    }
-
-
-     /**
-     * @return Webhook post data as an array
-     */
-    protected function getPostData() : array
-    {
-        $request = file_get_contents('php://input');
-
-        return json_decode($request, true);
     }
 
 }

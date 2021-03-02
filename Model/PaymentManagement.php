@@ -112,8 +112,6 @@ class PaymentManagement implements \Payflexi\Checkout\Api\PaymentManagementInter
                 }
             }
 
-            $this->logger->debug("Transaction", (array)$transaction->meta);
-
             $order = $this->getOrder();
             if ($order && $order->getQuoteId() === $quoteId && $transaction->meta->quoteId === $quoteId) {
                 // dispatch the `payflexi_payment_verify_after` event to update the order status

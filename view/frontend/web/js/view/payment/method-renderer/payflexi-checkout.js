@@ -38,7 +38,6 @@ define(
                     fullScreenLoader.startLoader();
                     window.location.replace(mageUrl.build(url));
                 },
-
                 /**
                  * @override
                  */
@@ -47,23 +46,7 @@ define(
                     var checkoutConfig = window.checkoutConfig;
                     var paymentData = quote.billingAddress();
                     var payflexiConfiguration = checkoutConfig.payment.payflexi_checkout;
-                    var visibleItems = checkoutConfig.quoteItemData;
-                    var products = '';
-                    visibleItems.forEach((item, index) => {
-                        var orderedItem = item.name + ", Qty:" + item.qty + ", Sku:" + item.product.sku;
-
-                        if (item.options && item.options.length >= 1) {
-                            item.options.forEach((option, i) => {
-                                orderedItem = orderedItem  + ", " +  option.label + ":" + option.value;
-                            })
-                        }
-
-                        if (index < visibleItems.length - 1) {
-                            orderedItem =  orderedItem + " | ";
-                        }                            
-                        products += orderedItem;
-                    });
-
+    
                     if (payflexiConfiguration.integration_type == 'standard') {
                         this.redirectToCustomAction(payflexiConfiguration.integration_type_standard_url);
                     } else {
@@ -73,6 +56,23 @@ define(
                         } else {
                             paymentData.email = quote.guestEmail;
                         }
+                    
+                        var visibleItems = checkoutConfig.quoteItemData;
+                        var products = '';
+                        visibleItems.forEach((item, index) => {
+                            var orderedItem = item.name + ", Qty:" + item.qty + ", Sku:" + item.product.sku;
+
+                            if (item.options && item.options.length >= 1) {
+                                item.options.forEach((option, i) => {
+                                    orderedItem = orderedItem  + ", " +  option.label + ":" + option.value;
+                                })
+                            }
+
+                            if (index < visibleItems.length - 1) {
+                                orderedItem =  orderedItem + " | ";
+                            }                            
+                            products += orderedItem;
+                        });
 
                         var quoteId = checkoutConfig.quoteItemData[0].quote_id;
 

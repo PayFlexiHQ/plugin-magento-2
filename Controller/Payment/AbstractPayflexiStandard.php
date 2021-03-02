@@ -16,50 +16,30 @@ use Magento\Payment\Helper\Data as PaymentHelper;
 
 abstract class AbstractPayflexiStandard extends \Magento\Framework\App\Action\Action {
 
+    protected $quote;
+
     protected $resultPageFactory;
 
-    /**
-     *
-     * @var \Magento\Sales\Api\OrderRepositoryInterface
-     */
     protected $orderRepository;
 
-    /**
-     *
-     * @var \Magento\Sales\Api\Data\OrderInterface
-     */
     protected $orderInterface;
+
     protected $checkoutSession;
+
     protected $method;
+
     protected $messageManager;
 
-    /**
-     *
-     * @var \Payflexi\Checkout\Model\Ui\ConfigProvider
-     */
     protected $configProvider;
 
-    /**
-     *
-     * @var Payflexi
-     */
     protected $payflexi;
 
-    /**
-     * @var \Magento\Framework\Event\Manager
-     */
     protected $eventManager;
 
-    /**
-     *
-     * @var \Psr\Log\LoggerInterface
-     */
     protected $logger;
-    /**
-     *
-     * @var \Magento\Framework\App\Request\Http 
-     */
+ 
     protected $request;
+
     /**
      * Constructor
      *
@@ -77,7 +57,8 @@ abstract class AbstractPayflexiStandard extends \Magento\Framework\App\Action\Ac
             \Payflexi\Checkout\Model\Ui\ConfigProvider $configProvider,
             \Magento\Framework\Event\Manager $eventManager,
             \Magento\Framework\App\Request\Http $request,
-            \Psr\Log\LoggerInterface $logger
+            \Psr\Log\LoggerInterface $logger,
+            \Payflexi\Checkout\Model\LogHandler $handler
     ) {
         $this->resultPageFactory = $resultPageFactory;
         $this->orderRepository = $orderRepository;
@@ -89,6 +70,8 @@ abstract class AbstractPayflexiStandard extends \Magento\Framework\App\Action\Ac
         $this->eventManager = $eventManager;
         $this->request = $request;
         $this->logger = $logger;
+        $this->handler = $handler;
+        $this->logger->setHandlers ( [$this->handler] );
 
         $this->payflexi = $this->initPayflexiPay();
 
@@ -117,7 +100,29 @@ abstract class AbstractPayflexiStandard extends \Magento\Framework\App\Action\Ac
             return $this->_redirect('checkout/onepage/success');
         } else {
             if($message) $this->messageManager->addErrorMessage(__($message));
-            return $this->_redirect('checkout/onepage/failure');
+            $order = $this->orderRepository->get($this->checkoutSession->getLastOrderId());
+            if ($order) {
+                $order->cancel();
+                $order->addStatusToHistory(\Magento\Sales\Model\Order::STATE_CANCELED, __('Canceled by customer.'));
+                $order->save();
+            }
+            $resultRedirect = $this->resultRedirectFactory->create();
+            $resultRedirect->setPath('checkout/cart');
+            return $resultRedirect;
+           // return $this->_redirect('checkout/onepage/failure');
         }
     }
+    /**
+     * Return checkout quote object
+     *
+     * @return \Magento\Quote\Model\Quote
+     */
+    protected function getQuote()
+    {
+        if (!$this->quote) {
+            $this->quote = $this->checkoutSession->getQuote();
+        }
+        return $this->quote;
+    }
+
 }

@@ -22,12 +22,13 @@ class Setup extends AbstractPayflexiStandard {
 
         $message = '';
         $order = $this->orderInterface->loadByIncrementId($this->checkoutSession->getLastRealOrder()->getIncrementId());
-        if ($order && $this->method->getCode() == $order->getPayment()->getMethod()) {
+        if ($order && ($this->method->getCode() == $order->getPayment()->getMethod())) {
 
             try {
                 return $this->processAuthorization($order);
             } catch (\Exception $e) {
                 $message = $e->getMessage();
+                $this->logger->info("Error Message", ['Message' => $message]);
                 $order->addStatusToHistory($order->getStatus(), $message);
                 $this->orderRepository->save($order);
             }
@@ -38,33 +39,37 @@ class Setup extends AbstractPayflexiStandard {
 
     protected function processAuthorization(\Magento\Sales\Model\Order $order) {
 
-
-        $ch = curl_init();
         $transaction = new \stdClass();
         $transaction->orderId = $order->getId();
 
-        // set url
-        curl_setopt($ch, CURLOPT_URL, "https://api.payflexi.test/merchants/transactions");
+        $url = 'https://api.payflexi.test/merchants/transactions';
 
-        curl_setopt($ch, CURLOPT_HTTPHEADER, array(
-            'Authorization: Bearer '. $this->configProvider->getSecretKey(),
-            'Content-Type: application/json'
-        ));
-
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-        curl_setopt($ch, CURLOPT_POST, true);
-        curl_setopt($ch, CURLOPT_HEADER, false);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode([
+        $fields = [
             'reference' => $order->getIncrementId(),
             'amount' => (int)round($order->getGrandTotal(), 2),
+            'currency' => $order->getOrderCurrencyCode(),
             'email' => $order->getCustomerEmail(),
             'name' => $order->getCustomerFirstname() . ' ' . $order->getCustomerLastname(),
-            'callback_url' => $this->configProvider->store->getBaseUrl() . "payflexi/checkout/payment/callback",
+            'callback_url' => $this->configProvider->store->getBaseUrl() . "payflexi/payment/callback",
             'domain' => 'global',
-            'metadata' => json_encode([
-                "order_id" => $transaction->orderId,
-            ]),
-        ]));
+            'meta' => [
+                'order_id' => $transaction->orderId,
+            ],
+        ];
+
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_HEADER, false);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 0);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 60);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($fields));
+        curl_setopt($ch, CURLOPT_HTTPHEADER, array(
+            'Authorization: Bearer '. $this->configProvider->getSecretKey(),
+            'Content-Type: application/json',
+            'Accept: application/json'
+        ));
 
         // Make sure CURL_SSLVERSION_TLSv1_2 is defined as 6
         // cURL must be able to use TLSv1.2 to connect to Payflexi servers
@@ -85,19 +90,18 @@ class Setup extends AbstractPayflexiStandard {
             //close connection
             curl_close($ch);
 
-            // Then, after your curl_exec call:
-            $body = json_decode($response);
-            if(!$body->status){
-                // payflexi has an error message for us
+            $body = json_decode($response, true);
+
+            if($body['errors']){
                 $transaction->error = "Payflexi API said: " . $body->message;
             } else {
-                // get body returned by Paystack API
-                $transaction = $body->data;
+                $transaction->checkout_url = $body['checkout_url'];
             }
+
         }
 
         $redirectFactory = $this->resultRedirectFactory->create();
-        $redirectFactory->setUrl($transaction->checkoutUrl);
+        $redirectFactory->setUrl($transaction->checkout_url);
 
 
         return $redirectFactory;
