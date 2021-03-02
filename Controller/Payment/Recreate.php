@@ -19,9 +19,8 @@ class Recreate extends AbstractPayflexiStandard {
     public function execute() {
 
         $order = $this->checkoutSession->getLastRealOrder();
-       // echo "<pre>"; print_r($order->debug()); die("dead");
-        if ($order->getId() && $order->getState() == Order::STATE_CANCELED) {
-            $order->registerCancellation("Returned from PayFlexi without completing payment. Order cancelled.")->save();
+        if ($order->getId() && $order->getState() != Order::STATE_CANCELED) {
+            $order->registerCancellation("Payment Failed or Cancelled")->save();
         }
 
         $this->checkoutSession->restoreQuote();

@@ -45,7 +45,7 @@ class Setup extends AbstractPayflexiStandard {
         $url = 'https://api.payflexi.test/merchants/transactions';
 
         $fields = [
-            'reference' => $order->getIncrementId(),
+            'reference' =>  'MGN-' . $order->getIncrementId() . '-' . uniqid(),
             'amount' => (int)round($order->getGrandTotal(), 2),
             'currency' => $order->getOrderCurrencyCode(),
             'email' => $order->getCustomerEmail(),
@@ -80,24 +80,17 @@ class Setup extends AbstractPayflexiStandard {
         // exec the cURL
         $response = curl_exec($ch);
 
-        // should be 0
         if (curl_errno($ch)) {
-            // curl ended with an error
             $transaction->error = "cURL said:" . curl_error($ch);
             curl_close($ch);
         } else {
-
-            //close connection
             curl_close($ch);
-
             $body = json_decode($response, true);
-
             if($body['errors']){
-                $transaction->error = "Payflexi API said: " . $body->message;
+                $transaction->error = "Payflexi API Response: " . $body->message;
             } else {
                 $transaction->checkout_url = $body['checkout_url'];
             }
-
         }
 
         $redirectFactory = $this->resultRedirectFactory->create();

@@ -97,7 +97,9 @@ abstract class AbstractPayflexiStandard extends \Magento\Framework\App\Action\Ac
     protected function redirectToFinal($successFul = true, $message="") {
         if($successFul){
             if($message) $this->messageManager->addSuccessMessage(__($message));
-            return $this->_redirect('checkout/onepage/success');
+            $resultRedirect = $this->resultRedirectFactory->create();
+            $resultRedirect->setPath('checkout/onepage/success');
+            return $resultRedirect;
         } else {
             if($message) $this->messageManager->addErrorMessage(__($message));
             $order = $this->orderRepository->get($this->checkoutSession->getLastOrderId());
@@ -109,7 +111,6 @@ abstract class AbstractPayflexiStandard extends \Magento\Framework\App\Action\Ac
             $resultRedirect = $this->resultRedirectFactory->create();
             $resultRedirect->setPath('checkout/cart');
             return $resultRedirect;
-           // return $this->_redirect('checkout/onepage/failure');
         }
     }
     /**

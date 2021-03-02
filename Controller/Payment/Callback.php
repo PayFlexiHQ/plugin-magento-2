@@ -33,6 +33,7 @@ class Callback extends AbstractPayflexiStandard
         if (isset($_GET['pf_approved'])) {
            
             $reference = $this->request->get('pf_approved');
+
             $this->logger->info('Request', ['Reference' => $reference]);
             $message = "";
 
@@ -41,22 +42,21 @@ class Callback extends AbstractPayflexiStandard
             }
 
             try {
-                $ch = curl_init();
+               
                 $transaction = new \stdClass();
 
-                // set url
-                curl_setopt($ch, CURLOPT_URL, "https://api.payflexi.test/merchants/transactions/" . rawurlencode($reference));
+                $url = 'https://api.payflexi.test/merchants/transactions/' . rawurlencode($reference);
 
+                // set url
+                $ch = curl_init();
+                curl_setopt($ch, CURLOPT_URL, $url);
+                curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+                curl_setopt($ch, CURLOPT_HEADER, false);
+                curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 0);
+                curl_setopt($ch, CURLOPT_TIMEOUT, 60);
                 curl_setopt($ch, CURLOPT_HTTPHEADER, array(
                     'Authorization: Bearer ' . $this->secretKey
                 ));
-
-                curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-                curl_setopt($ch, CURLOPT_HEADER, false);
-
-                //Remove for Product
-                curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
-                curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
 
                 // Make sure CURL_SSLVERSION_TLSv1_2 is defined as 6
                 // cURL must be able to use TLSv1.2 to connect to Payflexi servers
@@ -69,32 +69,25 @@ class Callback extends AbstractPayflexiStandard
 
                 // should be 0
                 if (curl_errno($ch)) {
-                    // curl ended with an error
                     $transaction->error = "cURL said:" . curl_error($ch);
                     curl_close($ch);
                 } else {
-
-                    //close connection
                     curl_close($ch);
-
-                    // Then, after your curl_exec call:
-                    $body = json_decode($response);
-
+                    $body = json_decode($response, true);
                     if ($body->errors == true) {
-                        // paystack has an error message for us
                         $transaction->error = "Payflexi API said: " . $body->message;
                     } else {
-                        // get body returned by Paystack API
                         $transaction = $body->data;
                     }
                 }
 
-                $reference = explode('_', $transaction->reference, 2);
-                $reference = ($reference[0]) ?: 0;
+                $reference = explode('-', $transaction->reference);
+                $order_id = $reference[1];
+                //$reference = ($reference[0]) ?: 0;
 
-                $order = $this->orderInterface->loadByIncrementId($reference);
+                $order = $this->orderInterface->loadByIncrementId($order_id);
 
-                if ($order && $reference === $order->getIncrementId()) {
+                if ($order && $order_id === $order->getIncrementId()) {
                     // dispatch the `payment_verify_after` event to update the order status
 
                     $this->eventManager->dispatch('payflexi_payment_verify_after', [
