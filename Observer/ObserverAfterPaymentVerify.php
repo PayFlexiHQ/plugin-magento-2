@@ -32,34 +32,53 @@ class ObserverAfterPaymentVerify implements ObserverInterface
     protected $_checkoutSession;
 
     public function __construct(
-        \Psr\Log\LoggerInterface $logger,
         \Magento\Sales\Model\OrderFactory $orderFactory,
-        \Magento\Checkout\Model\Session $checkoutSession
+        \Magento\Checkout\Model\Session $checkoutSession,
+        \Psr\Log\LoggerInterface $logger,
+        \Payflexi\Checkout\Model\LogHandler $handler
     ) {
-        $this->logger = $logger;
         $this->_checkoutSession = $checkoutSession;
         $this->_orderFactory = $orderFactory;
+        $this->logger = $logger;
+        $this->handler = $handler;
+        $this->logger->setHandlers ( [$this->handler] );
     }
 
     public function execute(\Magento\Framework\Event\Observer $observer)
     {
-        //Observer execution code...
-        /** @var \Magento\Sales\Model\Order $order **/
         $order = $observer->getPayflexiOrder();
-        $payflexi_transaction_status = $observer->getData('payflexi_tranaction_status');
+        $order_2 = $observer->getData('payflexi_order');
+ 
+        $this->logger->info('Order 1', (array)$order);
+
+        $this->logger->info('Order 2', (array)$order_2);
+
+        $order_amount = (int)round($order->getGrandTotal(), 2);
+        $transaction_amount = $observer->getData('payflexi_transaction_txn_amount');
+        $transaction_status = $observer->getData('payflexi_transaction_status');
+        $transaction_initial_reference = $observer->getData('payflexi_transaction_initial_reference');
+        $transaction_reference = $observer->getData('payflexi_transaction_reference');
+
+        if ($order && $order->getStatus() == "pending" && $transaction_status == "approved") {
+            if ( $transaction_amount < $order_amount ) {
+
+                $order->setState(Order::STATE_PENDING_PAYMENT)
+                        ->addStatusToHistory(Order::STATE_PENDING_PAYMENT, __("Payflexi Payment Verified and Order is being processed"), true)
+                        ->setCanSendNewEmailFlag(true)
+                        ->setCustomerNoteNotify(true);
+                $order->save();
 
 
-        if ($order && $order->getStatus() == "pending" && $payflexi_transaction_status == "approved") {
-            // sets the status to processing since payment has been received
-            $order->setState(Order::STATE_PROCESSING)
-                    ->addStatusToHistory(Order::STATE_PROCESSING, __("Payflexi Payment Verified and Order is being processed"), true)
-                    ->setCanSendNewEmailFlag(true)
-                    ->setCustomerNoteNotify(true);
-            $order->save();
+            }else{
+                $order->setState(Order::STATE_PROCESSING)
+                        ->addStatusToHistory(Order::STATE_PROCESSING, __("Payflexi Payment Verified and Order is being processed"), true)
+                        ->setCanSendNewEmailFlag(true)
+                        ->setCustomerNoteNotify(true);
+                $order->save();
+            }
         }
 
-        if ($order && $order->getStatus() == "pending" && $payflexi_transaction_status == "failed") {
-            // sets the status to cancelled since payment failed
+        if ($order && $order->getStatus() == "pending" && $transaction_status == "failed") {
             $order->setState(Order::STATE_CANCELED)
                     ->addStatusToHistory(Order::STATE_CANCELED, __("Payflexi Payment Failed and Order is cancelled"), true)
                     ->setCustomerNoteNotify(false);

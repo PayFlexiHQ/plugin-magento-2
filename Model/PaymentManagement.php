@@ -58,66 +58,60 @@ class PaymentManagement implements \Payflexi\Checkout\Api\PaymentManagementInter
      */
     public function verifyPayment($reference)
     {
-        // we are appending quoteid
         $ref = explode('_-~-_', $reference);
         $reference = $ref[0];
         $quoteId = $ref[1];
 
         try {
-            $ch = curl_init();
-            $transaction = new \stdClass();
-            // set url
-            curl_setopt($ch, CURLOPT_URL, "https://api.payflexi.test/merchants/transactions/" . rawurlencode($reference));
-
-            curl_setopt($ch, CURLOPT_HTTPHEADER, array(
-                'Authorization: Bearer '. $this->secretKey
-            ));
             
-            curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-            curl_setopt($ch, CURLOPT_HEADER, false);
-
-            //Remove for Product
-            curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
-            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-
-            // Make sure CURL_SSLVERSION_TLSv1_2 is defined as 6
-            // cURL must be able to use TLSv1.2 to connect to Payflexi servers
+            $transaction = new \stdClass();
+            
+            //cURL must be able to use TLSv1.2 to connect to Payflexi servers
             if (!defined('CURL_SSLVERSION_TLSv1_2')) {
                 define('CURL_SSLVERSION_TLSv1_2', 6);
             }
-            curl_setopt($ch, CURLOPT_SSLVERSION, CURL_SSLVERSION_TLSv1_2);
-            // exec the cURL
+
+            $url = 'https://api.payflexi.test/merchants/transactions/' . rawurlencode($reference);
+
+            $ch = curl_init();
+
+            curl_setopt_array($ch, array(
+                CURLOPT_URL => $url,
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_HEADER => false,
+                CURLOPT_SSL_VERIFYPEER => 0,
+                CURLOPT_TIMEOUT => 60,
+                CURLOPT_SSLVERSION => CURL_SSLVERSION_TLSv1_2,
+                CURLOPT_HTTPHEADER => array(
+                    'Authorization: Bearer '. $this->secretKey
+                ),
+            ));
+    
             $response = curl_exec($ch);
 
-            // should be 0
             if (curl_errno($ch)) {
-                // curl ended with an error
                 $transaction->error = "cURL said:" . curl_error($ch);
                 curl_close($ch);
             } else {
-
-                //close connection
                 curl_close($ch);
-
-                // Then, after your curl_exec call:
                 $body = json_decode($response);
-
                 if($body->errors == true){
-                    // payflexi has an error message for us
-                    $transaction->error = "Payflexi API said: " . $body->message;
+                    $transaction->error = "Payflexi API Response Error: " . $body->message;
                 } else {
-                    // get body returned by Payflexi API
                     $transaction = $body->data;
-
                 }
             }
 
             $order = $this->getOrder();
+
             if ($order && $order->getQuoteId() === $quoteId && $transaction->meta->quoteId === $quoteId) {
                 // dispatch the `payflexi_payment_verify_after` event to update the order status
                 $this->eventManager->dispatch('payflexi_payment_verify_after', [
-                    "payflexi_order" => $order,
-                    "payflexi_tranaction_status" => $transaction->status
+                    'payflexi_order' => $order,
+                    'payflexi_transaction_reference' => $reference,
+                    'payflexi_transaction_txn_amount' => $transaction->txn_amount,
+                    'payflexi_transaction_status' => $transaction->status,
+                    'payflexi_transaction_initial_reference' => '',
                 ]);
 
                 return json_encode($transaction);
