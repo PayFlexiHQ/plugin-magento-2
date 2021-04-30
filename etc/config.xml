@@ -17,8 +17,6 @@
                 <sort_order>400</sort_order>
                 <order_status>pending</order_status>
                 <allowspecific>0</allowspecific>
-                <min_order_total>50</min_order_total>
-                <max_order_total>500000</max_order_total>
             </payflexi_checkout>
         </payment>
     </default>

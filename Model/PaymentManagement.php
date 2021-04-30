@@ -71,7 +71,7 @@ class PaymentManagement implements \Payflexi\Checkout\Api\PaymentManagementInter
                 define('CURL_SSLVERSION_TLSv1_2', 6);
             }
 
-            $url = 'https://api.payflexi.test/merchants/transactions/' . rawurlencode($reference);
+            $url = 'https://api.payflexi.co/merchants/transactions/' . rawurlencode($reference);
 
             $ch = curl_init();
 

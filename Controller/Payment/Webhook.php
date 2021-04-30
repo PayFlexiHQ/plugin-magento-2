@@ -120,7 +120,7 @@ class Webhook extends Action
                         $transaction = new \stdClass();
 
                         // set url
-                        curl_setopt($ch, CURLOPT_URL, "https://api.payflexi.test/merchants/transactions/" . rawurlencode($event->data->reference));
+                        curl_setopt($ch, CURLOPT_URL, "https://api.payflexi.co/merchants/transactions/" . rawurlencode($event->data->reference));
 
                         curl_setopt($ch, CURLOPT_HTTPHEADER, array(
                             'Authorization: Bearer '. $secretKey

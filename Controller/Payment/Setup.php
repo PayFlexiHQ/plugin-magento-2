@@ -42,7 +42,7 @@ class Setup extends AbstractPayflexiStandard {
         $transaction = new \stdClass();
         $transaction->orderId = $order->getId();
 
-        $url = 'https://api.payflexi.test/merchants/transactions';
+        $url = 'https://api.payflexi.co/merchants/transactions';
 
         $fields = [
             'reference' =>  'MGN-' . $order->getIncrementId() . '-' . uniqid(),

@@ -45,7 +45,7 @@ class Callback extends AbstractPayflexiStandard
                
                 $transaction = new \stdClass();
 
-                $url = 'https://api.payflexi.test/merchants/transactions/' . rawurlencode($reference);
+                $url = 'https://api.payflexi.co/merchants/transactions/' . rawurlencode($reference);
 
                 // set url
                 $ch = curl_init();

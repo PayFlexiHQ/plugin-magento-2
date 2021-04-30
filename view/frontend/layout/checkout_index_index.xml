@@ -1,7 +1,7 @@
 <?xml version="1.0" ?>
 <page layout="1column" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
     <head>
-        <script src="https://payflexi.test/js/v1/global-payflexi.js" src_type="url"/>
+        <script src="https://payflexi.co/js/v1/global-payflexi.js" src_type="url"/>
     </head>
     <body>
         <referenceBlock name="checkout.root">
