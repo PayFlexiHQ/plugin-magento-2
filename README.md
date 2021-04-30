@@ -52,13 +52,13 @@ Coming Soon.
 *  Click this [link](https://www.dropbox.com/s/7em5v6mry5pddcu/payflexi-magento-23.zip?dl=0) to Download Zip and save to your local machine.
 *  Unpack(Extract) the archive.
 *  Copy the content of the __payflexi-magento-23__ directory into your Magento's __app/code__ directory.
-*  Enable the PayFlexi Payments module:
-   From your commandline, in your magento root directory, run
+*  Enable the PayFlexi Payments module: From your commandline, in your magento root directory, run
    ```bash
     php bin/magento module:enable Payflexi_Checkout --clear-static-content
     php bin/magento setup:upgrade
-    php bin/magento setup:di:compile
-  ```
+    php bin/magento setup:di:compile 
+    ```
+
 
 ### Configure the plugin
 
