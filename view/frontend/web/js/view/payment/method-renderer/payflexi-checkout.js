@@ -80,6 +80,7 @@ define(
                         _this.isPlaceOrderActionAllowed(false);
                         var handler = PayFlexi.checkout({
                             key: payflexiConfiguration.public_key,
+                            gateway: payflexiConfiguration.enabled_gateway,
                             name: paymentData.firstname + ' ' + paymentData.lastname,
                             email: paymentData.email,
                             amount: Math.ceil(quote.totals().grand_total), // get order total from quote for an accurate... quote

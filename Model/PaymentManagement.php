@@ -110,6 +110,7 @@ class PaymentManagement implements \Payflexi\Checkout\Api\PaymentManagementInter
                     'payflexi_order' => $order,
                     'payflexi_transaction_reference' => $reference,
                     'payflexi_transaction_txn_amount' => $transaction->txn_amount,
+                    'payflexi_transaction_total_amount_paid' => $transaction->txn_amount,
                     'payflexi_transaction_status' => $transaction->status,
                     'payflexi_transaction_initial_reference' => '',
                 ]);

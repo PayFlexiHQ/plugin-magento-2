@@ -21,6 +21,10 @@
                 <field id="title" translate="label" type="text" sortOrder="2" showInDefault="1" showInWebsite="1" showInStore="1">
                     <label>Title</label>
                 </field>
+                <field id="enabled_gateway" translate="label" type="select" sortOrder="3" showInDefault="1" showInWebsite="1" showInStore="0">
+                    <label>Payment Gateway</label>
+                    <source_model>Payflexi\Checkout\Model\Config\Source\EnabledGateway</source_model>
+                </field>
                 <field id="integration_type" translate="label" type="select" sortOrder="3" showInDefault="1" showInWebsite="1" showInStore="0">
                     <label>Integration Type</label>
                     <source_model>Payflexi\Checkout\Model\Config\Source\IntegrationType</source_model>

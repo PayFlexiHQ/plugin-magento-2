@@ -42,12 +42,14 @@ class ConfigProvider implements ConfigProviderInterface
         }
 
         $integrationType = $this->method->getConfigData('integration_type')?: 'inline';
+        $enabledGateway = $this->method->getConfigData('enabled_gateway')?: 'stripe';
 
         return [
             'payment' => [
                 \Payflexi\Checkout\Model\Payment\Payflexi::CODE => [
                     'public_key' => $publicKey,
                     'integration_type' => $integrationType,
+                    'enabled_gateway' => $enabledGateway,
                     'api_url' => $this->store->getBaseUrl() . 'rest/',
                     'integration_type_standard_url' => $this->store->getBaseUrl() . 'payflexi/payment/setup',
                     'recreate_quote_url' => $this->store->getBaseUrl() . 'payflexi/payment/recreate',
@@ -87,6 +89,15 @@ class ConfigProvider implements ConfigProviderInterface
 
         return $data;
     }
-
+    
+    /**
+     * Get Enabled Payment Gateway
+     *
+     * @return string
+     */
+    public function getEnabledGateway(){
+        $gateway = $this->method->getConfigData('enabled_gateway');
+        return $gateway;
+    }
 
 }

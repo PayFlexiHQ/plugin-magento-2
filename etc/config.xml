@@ -6,6 +6,7 @@
                 <debug>1</debug>
                 <active>0</active>
                 <test_mode>1</test_mode>
+                <enabled_gateway>stripe</enabled_gateway>
                 <integration_type>inline</integration_type>
                 <model>Payflexi\Checkout\Model\Payment\Payflexi</model>
                 <title>PayFlexi (Pay in Installments)</title>

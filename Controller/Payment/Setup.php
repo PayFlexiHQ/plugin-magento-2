@@ -50,6 +50,7 @@ class Setup extends AbstractPayflexiStandard {
             'currency' => $order->getOrderCurrencyCode(),
             'email' => $order->getCustomerEmail(),
             'name' => $order->getCustomerFirstname() . ' ' . $order->getCustomerLastname(),
+            'gateway' => $this->configProvider->getEnabledGateway(),
             'callback_url' => $this->configProvider->store->getBaseUrl() . "payflexi/payment/callback",
             'domain' => 'global',
             'meta' => [

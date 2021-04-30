@@ -92,6 +92,11 @@ class Callback extends AbstractPayflexiStandard
 
                     $this->eventManager->dispatch('payflexi_payment_verify_after', [
                         "payflexi_order" => $order,
+                        'payflexi_transaction_reference' => $reference,
+                        'payflexi_transaction_txn_amount' => $transaction->txn_amount,
+                        'payflexi_transaction_total_amount_paid' => $transaction->txn_amount,
+                        'payflexi_transaction_status' => $transaction->status,
+                        'payflexi_transaction_initial_reference' => '',
                     ]);
 
                     return $this->redirectToFinal(true);
